@@ -8,10 +8,10 @@ ISI project
 
 ## Mapping du Thème
 Pour ce projet "Auto-loc" voici comment nous avons structuré les données imposées :
-- **Table A (Utilisateurs)** :
-- **Table B (Ressources)** :
-- **Table C (Interactions)** :
-- **Storage (Fichiers)** :
+- **Table A (Utilisateurs)** : Gérée par Supabase Auth via l'ID utilisateur (`auth.users`).
+- **Table B (Ressources)** : Table `voitures` contenant le catalogue (marque, modèle, prix journalier).
+- **Table C (Interactions)** : Table `reservation` reliant un client à une voiture avec un statut et une date.
+- **Storage (Fichiers)** : Bucket sécurisé contenant les photos des permis, lié via la colonne `permis-url`.
 
 ---
 
