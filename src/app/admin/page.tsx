@@ -169,7 +169,7 @@ export default function AdminDashboard() {
           <button onClick={() => setAuthorized(false)} className="text-[10px] opacity-40 uppercase hover:opacity-100 transition">Déconnexion</button>
         </div>
 
-        {/* Formulaire d'Ajout (Optionnel si tu veux le voir) */}
+        {/* Formulaire d'Ajout  */}
         <section className="bg-zinc-900/10 border border-white/5 p-8 rounded-[2rem]">
             <h2 className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 mb-6 font-bold">Nouveau Véhicule</h2>
             <form onSubmit={handleAddCar} className="grid grid-cols-1 md:grid-cols-4 gap-4">
