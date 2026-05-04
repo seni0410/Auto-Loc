@@ -3,22 +3,41 @@ import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 
+// --- DÉFINITION DES TYPES (Pour régler les erreurs TypeScript) ---
+interface Voiture {
+  id: string;
+  marque: string;
+  modele: string;
+  prix_journalier: number;
+  image_url: string;
+  disponible: boolean;
+}
+
+interface SearchResult {
+  statut: string;
+  voitures: {
+    marque: string;
+    modele: string;
+  } | null;
+}
+
 export default function Home() {
-  const [voitures, setVoitures] = useState([]);
+  // --- ÉTATS AVEC TYPES ---
+  const [voitures, setVoitures] = useState<Voiture[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedVoiture, setSelectedVoiture] = useState(null);
+  const [selectedVoiture, setSelectedVoiture] = useState<Voiture | null>(null);
   const [loading, setLoading] = useState(true);
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
 
   // --- ÉTATS RÉSERVATION ---
   const [dateDebut, setDateDebut] = useState("");
   const [dateFin, setDateFin] = useState("");
-  const [orderCode, setOrderCode] = useState(null);
+  const [orderCode, setOrderCode] = useState<string | null>(null);
 
   // --- NOUVEAUX ÉTATS SUIVI ---
   const [searchCode, setSearchCode] = useState("");
-  const [searchResult, setSearchResult] = useState(null);
+  const [searchResult, setSearchResult] = useState<any>(null); // any ici pour simplifier la jointure Supabase
   const [searching, setSearching] = useState(false);
 
   const { scrollYProgress } = useScroll();
@@ -29,7 +48,7 @@ export default function Home() {
     const fetchVoitures = async () => {
       try {
         const { data, error } = await supabase.from('voitures').select('*');
-        if (!error) setVoitures(data || []);
+        if (!error) setVoitures((data as Voiture[]) || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -68,7 +87,7 @@ export default function Home() {
       if (insertError) throw insertError;
       
       setOrderCode(code);
-    } catch (err) {
+    } catch (err: any) {
       alert("Erreur : " + err.message);
     } finally {
       setSending(false);
@@ -121,7 +140,6 @@ export default function Home() {
         <div className="hidden md:flex gap-12 text-[9px] uppercase tracking-[0.3em] opacity-50 font-bold">
           <a href="#collection" className="hover:text-blue-400 transition-colors">Collection</a>
           <a href="#vision" className="hover:text-blue-400 transition-colors">Vision</a>
-          {/* Correction ici : Le lien pointe vers #suivi */}
           <a href="#suivi" className="hover:text-blue-400 transition-colors">Suivi</a>
         </div>
       </nav>
@@ -181,6 +199,7 @@ export default function Home() {
               <div className="relative w-full aspect-[3/2] overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0a]">
                 <img 
                   src={voiture.image_url} 
+                  alt={voiture.modele}
                   className={`w-full h-full object-cover transition-all duration-[1.5s] ${voiture.disponible ? 'grayscale-[0.3] group-hover:grayscale-0 group-hover:scale-110' : 'grayscale'}`}
                 />
                 {!voiture.disponible && (
@@ -222,7 +241,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Correction ici : Ajout de id="suivi" pour que le lien fonctionne */}
       <section id="suivi" className="w-full max-w-4xl px-8 py-20 z-10">
         <div className="bg-white/5 border border-white/10 rounded-3xl p-8 md:p-12 backdrop-blur-xl">
           <div className="text-center mb-10">
@@ -314,7 +332,7 @@ export default function Home() {
 
                     <div className="relative border-b border-white/10 pb-6">
                       <label className="text-[9px] uppercase tracking-widest text-white/40 block mb-4">Pièce d'identité ou Permis</label>
-                      <input type="file" onChange={(e) => setFile(e.target.files?.[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
+                      <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" />
                       <div className="text-xs text-blue-400 tracking-widest">{file ? file.name : "CLIQUEZ POUR AJOUTER +"}</div>
                     </div>
 
