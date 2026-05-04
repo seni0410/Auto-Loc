@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
+import { User } from '@supabase/supabase-js';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 
 // --- DÉFINITION DES TYPES (Pour régler les erreurs TypeScript) ---
@@ -30,6 +31,15 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
 
+  // --- ÉTATS AUTHENTIFICATION ---
+  const [user, setUser] = useState<User | null>(null);
+  const [authModal, setAuthModal] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [myReservations, setMyReservations] = useState<any[]>([]);
+
   // --- ÉTATS RÉSERVATION ---
   const [dateDebut, setDateDebut] = useState("");
   const [dateFin, setDateFin] = useState("");
@@ -45,6 +55,13 @@ export default function Home() {
   const heroScale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
     const fetchVoitures = async () => {
       try {
         const { data, error } = await supabase.from('voitures').select('*');
@@ -56,7 +73,48 @@ export default function Home() {
       }
     };
     fetchVoitures();
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const fetchReservations = async () => {
+    if (user) {
+      const { data } = await supabase.from('reservation').select('*, voitures(marque, modele)').eq('client_id', user.id);
+      if (data) setMyReservations(data);
+    } else {
+      setMyReservations([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchReservations();
+  }, [user]);
+
+  // --- FONCTIONS AUTH ---
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    try {
+      if (authMode === 'register') {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        alert("Inscription réussie ! Vous êtes maintenant connecté.");
+        setAuthModal(false);
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        setAuthModal(false);
+      }
+    } catch (err: any) {
+      alert("Erreur: " + err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   const handleConfirm = async () => {
     if (!file || !selectedVoiture || !dateDebut || !dateFin) {
@@ -77,6 +135,7 @@ export default function Home() {
 
       const { error: insertError } = await supabase.from('reservation').insert([{
         voiture_id: selectedVoiture.id,
+        client_id: user?.id,
         permis_url: urlData.publicUrl,
         date_debut: dateDebut,
         date_fin: dateFin,
@@ -87,6 +146,7 @@ export default function Home() {
       if (insertError) throw insertError;
 
       setOrderCode(code);
+      fetchReservations();
     } catch (err: any) {
       alert("Erreur : " + err.message);
     } finally {
@@ -144,10 +204,15 @@ export default function Home() {
 
       <nav className="fixed top-0 w-full z-50 px-10 py-8 flex justify-between items-center bg-black/20 backdrop-blur-md border-b border-white/5">
         <h1 className="text-xl font-black tracking-tighter uppercase italic text-blue-500">Auto-Loc</h1>
-        <div className="hidden md:flex gap-12 text-[9px] uppercase tracking-[0.3em] opacity-50 font-bold">
+        <div className="hidden md:flex gap-12 text-[9px] uppercase tracking-[0.3em] opacity-50 font-bold items-center">
           <a href="#collection" className="hover:text-blue-400 transition-colors">Collection</a>
           <a href="#vision" className="hover:text-blue-400 transition-colors">Vision</a>
-          <a href="#suivi" className="hover:text-blue-400 transition-colors">Suivi</a>
+          <a href="#suivi" className="hover:text-blue-400 transition-colors">Tableau de bord</a>
+          {user ? (
+            <button onClick={handleLogout} className="text-red-400 hover:text-red-300 transition-colors border border-red-500/20 px-4 py-2 rounded-full">Déconnexion</button>
+          ) : (
+            <button onClick={() => setAuthModal(true)} className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-white hover:text-black transition-colors">Espace Client</button>
+          )}
         </div>
       </nav>
 
@@ -196,11 +261,14 @@ export default function Home() {
               whileHover={voiture.disponible ? { y: -12 } : {}}
               className={`flex flex-col ${voiture.disponible ? 'group cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
               onClick={() => {
-                if (voiture.disponible) {
-                  setSelectedVoiture(voiture);
-                  setIsModalOpen(true);
-                  setOrderCode(null);
+                if (!voiture.disponible) return;
+                if (!user) {
+                  setAuthModal(true);
+                  return;
                 }
+                setSelectedVoiture(voiture);
+                setIsModalOpen(true);
+                setOrderCode(null);
               }}
             >
               <div className="relative w-full aspect-[3/2] overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0a]">
@@ -248,46 +316,48 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="suivi" className="w-full max-w-4xl px-8 py-20 z-10">
+      <section id="suivi" className="w-full max-w-5xl px-8 py-20 z-10">
         <div className="bg-white/5 border border-white/10 rounded-3xl p-8 md:p-12 backdrop-blur-xl">
           <div className="text-center mb-10">
-            <h3 className="text-[10px] uppercase tracking-[0.5em] text-blue-500 font-bold mb-4">Suivi de Réservation</h3>
-            <p className="text-2xl font-light italic">Consultez l'état de votre demande</p>
+            <h3 className="text-[10px] uppercase tracking-[0.5em] text-blue-500 font-bold mb-4">Tableau de Bord</h3>
+            <p className="text-2xl font-light italic">Votre historique et suivi</p>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4">
-            <input
-              type="text"
-              placeholder="ENTREZ VOTRE CODE (ex: AL-X2Y3Z)"
-              className="flex-1 bg-black/40 border border-white/10 rounded-xl p-5 text-[10px] tracking-widest outline-none focus:border-blue-500 transition-all uppercase"
-              value={searchCode}
-              onChange={(e) => setSearchCode(e.target.value)}
-            />
-            <button
-              onClick={handleSearch}
-              className="px-10 py-5 bg-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
-            >
-              {searching ? "RECHERCHE..." : "VÉRIFIER"}
-            </button>
-          </div>
-
-          {searchResult && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className="mt-12 p-8 border-t border-white/5 text-center"
-            >
-              <p className="text-[10px] uppercase tracking-widest text-white/40 mb-2">
-                Véhicule : {searchResult.voitures?.marque} {searchResult.voitures?.modele}
-              </p>
-              <div className="flex items-center justify-center gap-4">
-                <span className="text-[10px] uppercase tracking-widest">Statut actuel :</span>
-                <span className={`px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter ${searchResult.statut === 'accepte' ? 'bg-green-500/20 text-green-500' :
-                  searchResult.statut === 'refuse' ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/20 text-blue-500'
-                  }`}>
-                  {searchResult.statut === 'en_attente' ? '● Analyse en cours' : searchResult.statut}
-                </span>
+          {!user ? (
+            <div className="text-center py-10">
+              <p className="text-white/40 text-sm mb-6 uppercase tracking-widest">Connectez-vous pour voir vos réservations</p>
+              <button onClick={() => setAuthModal(true)} className="px-10 py-5 bg-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">S'authentifier</button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center mb-6">
+                <p className="text-[10px] uppercase tracking-widest text-white/40">Connecté en tant que: <span className="text-white">{user.email}</span></p>
+                <div className="flex gap-2">
+                  <input type="text" placeholder="CODE ADMIN" className="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-[9px] tracking-widest outline-none uppercase w-32" value={searchCode} onChange={(e) => setSearchCode(e.target.value)} />
+                  <button onClick={handleSearch} className="px-4 py-2 bg-zinc-800 rounded-lg text-[9px] font-bold uppercase hover:bg-zinc-700">Go</button>
+                </div>
               </div>
-            </motion.div>
+
+              {myReservations.length === 0 ? (
+                <div className="text-center py-10 border border-white/5 bg-black/20 rounded-2xl">
+                  <p className="text-white/30 text-xs uppercase tracking-widest">Aucune réservation trouvée.</p>
+                </div>
+              ) : (
+                myReservations.map((res: any) => (
+                  <div key={res.id} className="p-6 border border-white/5 bg-black/20 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="text-center md:text-left">
+                      <p className="font-bold text-blue-400 uppercase text-xs">{res.voitures?.marque} {res.voitures?.modele}</p>
+                      <p className="text-[9px] text-white/40 uppercase tracking-widest mt-1">Du {res.date_debut} au {res.date_fin}</p>
+                    </div>
+                    <span className={`px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest ${res.statut === 'accepte' || res.statut === 'confirme' ? 'bg-green-500/20 text-green-500' :
+                      res.statut === 'refuse' ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/20 text-blue-500'
+                      }`}>
+                      {res.statut === 'en_attente' ? 'En cours d\'analyse' : res.statut}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
           )}
         </div>
       </section>
@@ -296,6 +366,36 @@ export default function Home() {
         <h2 className="text-5xl font-black tracking-tighter uppercase opacity-10 mb-10 italic">Auto-Loc</h2>
         <p className="text-[8px] opacity-20 tracking-[0.6em] uppercase">Algeria Premium Mobility © 2026</p>
       </footer>
+
+      <AnimatePresence>
+        {authModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-6">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-[#050505] border border-white/10 p-10 md:p-12 rounded-3xl max-w-md w-full relative">
+              <button onClick={() => setAuthModal(false)} className="absolute top-8 right-8 text-xs opacity-30 hover:opacity-100">FERMER ×</button>
+              <h3 className="text-3xl font-light italic mb-2">{authMode === 'login' ? 'Connexion' : 'Inscription'}</h3>
+              <p className="text-[10px] uppercase tracking-widest text-white/40 mb-8">{authMode === 'login' ? 'Accédez à votre espace' : 'Créez votre compte client'}</p>
+
+              <form onSubmit={handleAuth} className="space-y-6">
+                <div>
+                  <label className="text-[9px] uppercase tracking-widest text-white/40 mb-2 block">Email</label>
+                  <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-xs outline-none focus:border-blue-500 text-white" />
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase tracking-widest text-white/40 mb-2 block">Mot de passe</label>
+                  <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-xs outline-none focus:border-blue-500 text-white" />
+                </div>
+                <button type="submit" disabled={authLoading} className="w-full py-4 bg-blue-600 text-white text-[10px] uppercase tracking-[0.5em] font-black rounded-xl hover:bg-white hover:text-black transition-all">
+                  {authLoading ? 'CHARGEMENT...' : (authMode === 'login' ? 'SE CONNECTER' : "S'INSCRIRE")}
+                </button>
+              </form>
+
+              <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="w-full text-center mt-6 text-[9px] uppercase tracking-widest text-white/30 hover:text-white transition-colors">
+                {authMode === 'login' ? "Pas de compte ? S'inscrire" : "Déjà un compte ? Se connecter"}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isModalOpen && (
