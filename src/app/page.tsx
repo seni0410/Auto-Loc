@@ -96,6 +96,13 @@ export default function Home() {
 
   const handleSearch = async () => {
     if (!searchCode) return;
+
+    // --- ACCÈS SECRET ADMIN ---
+    if (searchCode.trim().toUpperCase() === "AUTO2026") {
+      window.location.href = "/admin";
+      return;
+    }
+
     setSearching(true);
     setSearchResult(null);
     
