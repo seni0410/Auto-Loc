@@ -62,30 +62,30 @@ export default function Home() {
     if (!file || !selectedVoiture || !dateDebut || !dateFin) {
       return alert("Veuillez remplir les dates et ajouter votre document.");
     }
-    
+
     setSending(true);
     const code = `AL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
     try {
       const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
       const fileName = `${Date.now()}-${cleanName}`;
-      
+
       const { error: uploadError } = await supabase.storage.from('permis-bucket').upload(fileName, file);
       if (uploadError) throw uploadError;
-      
+
       const { data: urlData } = supabase.storage.from('permis-bucket').getPublicUrl(fileName);
-      
+
       const { error: insertError } = await supabase.from('reservation').insert([{
         voiture_id: selectedVoiture.id,
         permis_url: urlData.publicUrl,
         date_debut: dateDebut,
         date_fin: dateFin,
         statut: 'en_attente',
-        suivi_code: code 
+        suivi_code: code
       }]);
 
       if (insertError) throw insertError;
-      
+
       setOrderCode(code);
     } catch (err: any) {
       alert("Erreur : " + err.message);
@@ -105,7 +105,7 @@ export default function Home() {
 
     setSearching(true);
     setSearchResult(null);
-    
+
     const { data, error } = await supabase
       .from('reservation')
       .select('statut, voitures(modele, marque)')
@@ -128,17 +128,17 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#020202] text-white selection:bg-blue-500/30 overflow-x-hidden flex flex-col items-center">
-      
+
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <motion.div 
+        <motion.div
           animate={{ x: [0, 50, -50, 0], y: [0, 100, 50, 0], opacity: [0.1, 0.2, 0.1] }}
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] bg-blue-600/20 rounded-full blur-[150px]" 
+          className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] bg-blue-600/20 rounded-full blur-[150px]"
         />
-        <motion.div 
+        <motion.div
           animate={{ x: [0, -70, 30, 0], y: [0, -50, 80, 0], opacity: [0.05, 0.15, 0.05] }}
           transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-indigo-700/20 rounded-full blur-[150px]" 
+          className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-indigo-700/20 rounded-full blur-[150px]"
         />
       </div>
 
@@ -155,7 +155,7 @@ export default function Home() {
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2 }}>
           <span className="text-[10px] uppercase tracking-[0.6em] text-blue-500 font-bold mb-6 block">The Art of Driving</span>
           <h2 className="text-6xl md:text-8xl lg:text-[9vw] font-extralight tracking-tighter leading-none mb-10">
-            L'élégance du <br/><span className="font-serif italic text-blue-400">mouvement.</span>
+            L'élégance du <br /><span className="font-serif italic text-blue-400">mouvement.</span>
           </h2>
           <p className="max-w-xl text-sm text-white/30 leading-relaxed font-light mx-auto uppercase tracking-[0.2em]">
             Une expérience de location redéfinie pour l'Algérie.
@@ -184,10 +184,10 @@ export default function Home() {
           <h3 className="text-xs uppercase tracking-[0.6em] text-blue-500 mb-4 font-bold">La Collection</h3>
           <div className="w-20 h-[1px] bg-white/10" />
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-20">
           {voitures.map((voiture, index) => (
-            <motion.div 
+            <motion.div
               key={voiture.id}
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -195,17 +195,17 @@ export default function Home() {
               transition={{ duration: 0.8, delay: index * 0.1 }}
               whileHover={voiture.disponible ? { y: -12 } : {}}
               className={`flex flex-col ${voiture.disponible ? 'group cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
-              onClick={() => { 
+              onClick={() => {
                 if (voiture.disponible) {
-                  setSelectedVoiture(voiture); 
-                  setIsModalOpen(true); 
+                  setSelectedVoiture(voiture);
+                  setIsModalOpen(true);
                   setOrderCode(null);
                 }
               }}
             >
               <div className="relative w-full aspect-[3/2] overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0a]">
-                <img 
-                  src={voiture.image_url} 
+                <img
+                  src={voiture.image_url}
                   alt={voiture.modele}
                   className={`w-full h-full object-cover transition-all duration-[1.5s] ${voiture.disponible ? 'grayscale-[0.3] group-hover:grayscale-0 group-hover:scale-110' : 'grayscale'}`}
                 />
@@ -215,7 +215,7 @@ export default function Home() {
                   </div>
                 )}
               </div>
-              
+
               <div className="mt-8 space-y-4 px-2">
                 <div className="flex justify-between items-end">
                   <div>
@@ -227,7 +227,7 @@ export default function Home() {
                     <p className="text-[8px] uppercase opacity-30 tracking-widest">Par jour</p>
                   </div>
                 </div>
-                
+
                 <div className="pt-4 border-t border-white/5 grid grid-cols-3 gap-2 text-[8px] uppercase tracking-widest text-white/40">
                   <div className="flex flex-col gap-1">
                     <span className="text-blue-500/50">Moteur</span>
@@ -256,14 +256,14 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
-            <input 
-              type="text" 
-              placeholder="ENTREZ VOTRE CODE (ex: AL-X2Y3Z)" 
+            <input
+              type="text"
+              placeholder="ENTREZ VOTRE CODE (ex: AL-X2Y3Z)"
               className="flex-1 bg-black/40 border border-white/10 rounded-xl p-5 text-[10px] tracking-widest outline-none focus:border-blue-500 transition-all uppercase"
               value={searchCode}
               onChange={(e) => setSearchCode(e.target.value)}
             />
-            <button 
+            <button
               onClick={handleSearch}
               className="px-10 py-5 bg-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
             >
@@ -272,7 +272,7 @@ export default function Home() {
           </div>
 
           {searchResult && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               className="mt-12 p-8 border-t border-white/5 text-center"
             >
@@ -281,10 +281,9 @@ export default function Home() {
               </p>
               <div className="flex items-center justify-center gap-4">
                 <span className="text-[10px] uppercase tracking-widest">Statut actuel :</span>
-                <span className={`px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter ${
-                  searchResult.statut === 'accepte' ? 'bg-green-500/20 text-green-500' : 
+                <span className={`px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter ${searchResult.statut === 'accepte' ? 'bg-green-500/20 text-green-500' :
                   searchResult.statut === 'refuse' ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/20 text-blue-500'
-                }`}>
+                  }`}>
                   {searchResult.statut === 'en_attente' ? '● Analyse en cours' : searchResult.statut}
                 </span>
               </div>
@@ -300,16 +299,16 @@ export default function Home() {
 
       <AnimatePresence>
         {isModalOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-6"
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
               className="bg-[#050505] border border-white/10 p-10 md:p-16 rounded-3xl max-w-xl w-full relative"
             >
               <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 text-xs opacity-30 hover:opacity-100">FERMER ×</button>
-              
+
               {orderCode ? (
                 <div className="text-center space-y-8 py-10">
                   <span className="text-blue-500 text-[10px] font-bold tracking-widest uppercase">Demande Confirmée</span>
@@ -343,7 +342,7 @@ export default function Home() {
                       <div className="text-xs text-blue-400 tracking-widest">{file ? file.name : "CLIQUEZ POUR AJOUTER +"}</div>
                     </div>
 
-                    <button 
+                    <button
                       onClick={handleConfirm} disabled={sending}
                       className="w-full py-6 bg-blue-600 text-white text-[11px] uppercase tracking-[0.5em] font-black rounded-full hover:bg-white hover:text-black transition-all duration-500 disabled:opacity-20"
                     >

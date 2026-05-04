@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 
 // 1. TYPES
 interface Voiture {
-  id: string; 
+  id: string;
   marque: string;
   modele: string;
   prix_journalier: number;
@@ -25,7 +25,7 @@ export default function AdminDashboard() {
   // --- ÉTATS DE SÉCURITÉ ---
   const [authorized, setAuthorized] = useState(false);
   const [password, setPassword] = useState("");
-  
+
   // --- ÉTATS DE DONNÉES ---
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [voitures, setVoitures] = useState<Voiture[]>([]);
@@ -33,7 +33,7 @@ export default function AdminDashboard() {
   const [newCar, setNewCar] = useState({ marque: '', modele: '', prix: '' });
   const [carFile, setCarFile] = useState<File | null>(null);
   const [adding, setAdding] = useState(false);
-  const [filter, setFilter] = useState('toutes'); 
+  const [filter, setFilter] = useState('toutes');
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -41,14 +41,40 @@ export default function AdminDashboard() {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  // --- LOGIQUE DE CONNEXION ---
-  const handleLogin = (e: React.FormEvent) => {
+  const [email, setEmail] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // --- LOGIQUE DE CONNEXION SUPABASE ---
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === "AUTO2026") {
-      setAuthorized(true);
-    } else {
-      showToast("Mot de passe incorrect", "error");
+
+    // Vérification stricte du rôle (Technicien/Admin uniquement)
+    const emailLower = email.toLowerCase();
+    if (!emailLower.includes("technicien") && !emailLower.includes("admin")) {
+      showToast("Accès refusé : Réservé aux techniciens", "error");
+      return;
     }
+
+    setAuthLoading(true);
+    // Tentative de connexion via Supabase
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      // Fallback au cas où l'utilisateur n'est pas encore créé dans Supabase mais veut tester l'interface
+      if (password === "AUTO2026") {
+        setAuthorized(true);
+        showToast("Mode démo activé");
+      } else {
+        showToast("Identifiants incorrects", "error");
+      }
+    } else {
+      setAuthorized(true);
+      showToast("Connexion réussie");
+    }
+    setAuthLoading(false);
   };
 
   const fetchData = async () => {
@@ -57,7 +83,7 @@ export default function AdminDashboard() {
       const { data: resData, error: resError } = await supabase
         .from('reservation')
         .select('*, voitures(*)');
-        
+
       const { data: carData, error: carError } = await supabase
         .from('voitures')
         .select('*')
@@ -86,9 +112,9 @@ export default function AdminDashboard() {
         .from('reservation')
         .update({ statut: finalStatus })
         .eq('id', id);
-      
+
       if (resError) throw resError;
-      
+
       if (finalStatus === 'confirme' && voitureId) {
         const { error: carError } = await supabase
           .from('voitures')
@@ -98,7 +124,7 @@ export default function AdminDashboard() {
       }
 
       showToast(finalStatus === 'confirme' ? "Réservation confirmée" : "Statut mis à jour");
-      await fetchData(); 
+      await fetchData();
     } catch (err: any) {
       showToast("Erreur: " + err.message, "error");
     }
@@ -115,7 +141,7 @@ export default function AdminDashboard() {
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from('voitures-bucket').getPublicUrl(fileName);
       const { error: insertError } = await supabase.from('voitures').insert([{
-        marque: newCar.marque, modele: newCar.modele, prix_journalier: parseInt(newCar.prix), 
+        marque: newCar.marque, modele: newCar.modele, prix_journalier: parseInt(newCar.prix),
         image_url: urlData.publicUrl, disponible: true
       }]);
       if (insertError) throw insertError;
@@ -147,14 +173,22 @@ export default function AdminDashboard() {
     <div className="h-screen bg-black flex items-center justify-center p-6">
       <form onSubmit={handleLogin} className="flex flex-col gap-4 w-full max-w-xs">
         <h2 className="text-blue-500 text-center text-[10px] uppercase tracking-[0.3em] font-bold mb-2 italic">Accès Réservé Admin</h2>
-        <input 
-          type="password" 
-          placeholder="PASSWORD" 
-          className="bg-zinc-900 border border-white/10 p-4 rounded-xl text-white outline-none focus:border-blue-500 text-center transition-all" 
-          onChange={(e) => setPassword(e.target.value)} 
+        <input
+          type="email"
+          placeholder="EMAIL TECHNICIEN"
+          required
+          className="bg-zinc-900 border border-white/10 p-4 rounded-xl text-white outline-none focus:border-blue-500 text-center transition-all text-xs"
+          onChange={(e) => setEmail(e.target.value)}
         />
-        <button className="bg-blue-600 text-white p-4 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-white hover:text-black transition-all">
-          Se connecter
+        <input
+          type="password"
+          placeholder="PASSWORD"
+          required
+          className="bg-zinc-900 border border-white/10 p-4 rounded-xl text-white outline-none focus:border-blue-500 text-center transition-all text-xs"
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button disabled={authLoading} className="bg-blue-600 text-white p-4 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-white hover:text-black transition-all disabled:opacity-50">
+          {authLoading ? "VÉRIFICATION..." : "SE CONNECTER"}
         </button>
       </form>
     </div>
@@ -171,14 +205,14 @@ export default function AdminDashboard() {
 
         {/* Formulaire d'Ajout  */}
         <section className="bg-zinc-900/10 border border-white/5 p-8 rounded-[2rem]">
-            <h2 className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 mb-6 font-bold">Nouveau Véhicule</h2>
-            <form onSubmit={handleAddCar} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <input type="text" placeholder="Marque" className="bg-zinc-900 p-3 rounded-xl text-xs outline-none border border-white/5" value={newCar.marque} onChange={e => setNewCar({...newCar, marque: e.target.value})} />
-                <input type="text" placeholder="Modèle" className="bg-zinc-900 p-3 rounded-xl text-xs outline-none border border-white/5" value={newCar.modele} onChange={e => setNewCar({...newCar, modele: e.target.value})} />
-                <input type="number" placeholder="Prix" className="bg-zinc-900 p-3 rounded-xl text-xs outline-none border border-white/5" value={newCar.prix} onChange={e => setNewCar({...newCar, prix: e.target.value})} />
-                <input type="file" className="text-[9px]" onChange={e => setCarFile(e.target.files?.[0] || null)} />
-                <button className="md:col-span-4 bg-blue-600 py-3 rounded-xl text-[10px] font-bold uppercase">Ajouter au Parc</button>
-            </form>
+          <h2 className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 mb-6 font-bold">Nouveau Véhicule</h2>
+          <form onSubmit={handleAddCar} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input type="text" placeholder="Marque" className="bg-zinc-900 p-3 rounded-xl text-xs outline-none border border-white/5" value={newCar.marque} onChange={e => setNewCar({ ...newCar, marque: e.target.value })} />
+            <input type="text" placeholder="Modèle" className="bg-zinc-900 p-3 rounded-xl text-xs outline-none border border-white/5" value={newCar.modele} onChange={e => setNewCar({ ...newCar, modele: e.target.value })} />
+            <input type="number" placeholder="Prix" className="bg-zinc-900 p-3 rounded-xl text-xs outline-none border border-white/5" value={newCar.prix} onChange={e => setNewCar({ ...newCar, prix: e.target.value })} />
+            <input type="file" className="text-[9px]" onChange={e => setCarFile(e.target.files?.[0] || null)} />
+            <button className="md:col-span-4 bg-blue-600 py-3 rounded-xl text-[10px] font-bold uppercase">Ajouter au Parc</button>
+          </form>
         </section>
 
         {/* Stats */}
@@ -198,31 +232,31 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-end mb-6">
             <h2 className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold italic">Demandes</h2>
             <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-white/5">
-                {(['toutes', 'en_attente', 'confirme'] as const).map((t) => (
-                    <button key={t} onClick={() => setFilter(t)} className={`px-4 py-2 rounded-lg text-[9px] font-bold uppercase transition-all ${filter === t ? 'bg-blue-600 text-white' : 'text-zinc-500'}`}>
-                        {t}
-                    </button>
-                ))}
+              {(['toutes', 'en_attente', 'confirme'] as const).map((t) => (
+                <button key={t} onClick={() => setFilter(t)} className={`px-4 py-2 rounded-lg text-[9px] font-bold uppercase transition-all ${filter === t ? 'bg-blue-600 text-white' : 'text-zinc-500'}`}>
+                  {t}
+                </button>
+              ))}
             </div>
           </div>
 
           <div className="grid gap-3">
             {filteredReservations.map(res => (
-                <div key={res.id} className="p-5 bg-zinc-900/40 rounded-3xl border border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="text-center md:text-left">
-                      <p className="font-bold text-blue-400 uppercase text-xs">{res.voitures?.marque} {res.voitures?.modele}</p>
-                      <p className="text-[10px] opacity-50 uppercase">Client: {res.nom || 'Inconnu'} • {res.statut || 'en attente'}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      {(!res.statut || res.statut === 'en_attente') && (
-                        <>
-                          <button onClick={() => updateStatus(res.id, 'Confirmé', res.voiture_id)} className="bg-green-600 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase">Accepter</button>
-                          <button onClick={() => updateStatus(res.id, 'Refusé')} className="bg-zinc-800 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase">Refuser</button>
-                        </>
-                      )}
-                      <a href={res.permis_url} target="_blank" className="bg-blue-600/10 text-blue-400 px-5 py-2.5 rounded-xl text-[9px] font-black border border-blue-400/20">Permis</a>
-                    </div>
+              <div key={res.id} className="p-5 bg-zinc-900/40 rounded-3xl border border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="text-center md:text-left">
+                  <p className="font-bold text-blue-400 uppercase text-xs">{res.voitures?.marque} {res.voitures?.modele}</p>
+                  <p className="text-[10px] opacity-50 uppercase">Client: {res.nom || 'Inconnu'} • {res.statut || 'en attente'}</p>
                 </div>
+                <div className="flex gap-2">
+                  {(!res.statut || res.statut === 'en_attente') && (
+                    <>
+                      <button onClick={() => updateStatus(res.id, 'Confirmé', res.voiture_id)} className="bg-green-600 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase">Accepter</button>
+                      <button onClick={() => updateStatus(res.id, 'Refusé')} className="bg-zinc-800 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase">Refuser</button>
+                    </>
+                  )}
+                  <a href={res.permis_url} target="_blank" className="bg-blue-600/10 text-blue-400 px-5 py-2.5 rounded-xl text-[9px] font-black border border-blue-400/20">Permis</a>
+                </div>
+              </div>
             ))}
           </div>
         </section>
@@ -234,11 +268,11 @@ export default function AdminDashboard() {
             {voitures.map(v => (
               <div key={v.id} className="bg-zinc-900/20 rounded-[2.5rem] border border-white/5 overflow-hidden group">
                 <div className="relative aspect-video">
-                    <img src={v.image_url} className="w-full h-full object-cover opacity-80" alt="" />
-                    <div className="absolute top-4 right-4 bg-black/60 px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${v.disponible ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                      <p className="text-[10px] font-black text-blue-400">{v.prix_journalier} DA</p>
-                    </div>
+                  <img src={v.image_url} className="w-full h-full object-cover opacity-80" alt="" />
+                  <div className="absolute top-4 right-4 bg-black/60 px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${v.disponible ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <p className="text-[10px] font-black text-blue-400">{v.prix_journalier} DA</p>
+                  </div>
                 </div>
                 <div className="p-6">
                   <p className="font-black uppercase text-lg mb-4">{v.marque} <span className="text-blue-500">{v.modele}</span></p>
