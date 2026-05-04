@@ -75,7 +75,6 @@ export default function Home() {
     }
   };
 
-  // --- FONCTION DE RECHERCHE DE SUIVI ---
   const handleSearch = async () => {
     if (!searchCode) return;
     setSearching(true);
@@ -122,7 +121,8 @@ export default function Home() {
         <div className="hidden md:flex gap-12 text-[9px] uppercase tracking-[0.3em] opacity-50 font-bold">
           <a href="#collection" className="hover:text-blue-400 transition-colors">Collection</a>
           <a href="#vision" className="hover:text-blue-400 transition-colors">Vision</a>
-          <a href="#contact" className="hover:text-blue-400 transition-colors">Contact</a>
+          {/* Correction ici : Le lien pointe vers #suivi */}
+          <a href="#suivi" className="hover:text-blue-400 transition-colors">Suivi</a>
         </div>
       </nav>
 
@@ -222,8 +222,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- NOUVELLE SECTION RECHERCHE DE SUIVI --- */}
-      <section className="w-full max-w-4xl px-8 py-20 z-10">
+      {/* Correction ici : Ajout de id="suivi" pour que le lien fonctionne */}
+      <section id="suivi" className="w-full max-w-4xl px-8 py-20 z-10">
         <div className="bg-white/5 border border-white/10 rounded-3xl p-8 md:p-12 backdrop-blur-xl">
           <div className="text-center mb-10">
             <h3 className="text-[10px] uppercase tracking-[0.5em] text-blue-500 font-bold mb-4">Suivi de Réservation</h3>
@@ -268,7 +268,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer id="contact" className="w-full py-32 bg-black z-10 flex flex-col items-center text-center px-10">
+      <footer className="w-full py-32 bg-black z-10 flex flex-col items-center text-center px-10">
         <h2 className="text-5xl font-black tracking-tighter uppercase opacity-10 mb-10 italic">Auto-Loc</h2>
         <p className="text-[8px] opacity-20 tracking-[0.6em] uppercase">Algeria Premium Mobility © 2026</p>
       </footer>
