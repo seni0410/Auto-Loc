@@ -203,7 +203,10 @@ export default function Home() {
       </div>
 
       <nav className="fixed top-0 w-full z-50 px-10 py-8 flex justify-between items-center bg-black/20 backdrop-blur-md border-b border-white/5">
-        <h1 className="text-xl font-black tracking-tighter uppercase italic text-blue-500">Auto-Loc</h1>
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Auto-Loc Logo" className="h-8 w-auto opacity-90 hover:opacity-100 transition-opacity" />
+          <h1 className="text-xl font-black tracking-tighter uppercase italic text-blue-500">Auto-Loc</h1>
+        </div>
         <div className="hidden md:flex gap-12 text-[9px] uppercase tracking-[0.3em] opacity-50 font-bold items-center">
           <a href="#collection" className="hover:text-blue-400 transition-colors">Collection</a>
           <a href="#vision" className="hover:text-blue-400 transition-colors">Vision</a>

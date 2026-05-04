@@ -199,7 +199,10 @@ export default function AdminDashboard() {
     <main className="min-h-screen bg-black text-white p-6 md:p-12 font-sans relative">
       <div className="max-w-6xl mx-auto space-y-12">
         <div className="flex justify-between items-center border-b border-white/10 pb-8">
-          <h1 className="text-xl font-bold italic tracking-tighter">VIBE <span className="text-blue-500">CONSOLE</span></h1>
+          <div className="flex items-center gap-4">
+            <img src="/logo.png" alt="Auto-Loc Logo" className="h-10 w-auto opacity-80" />
+            <h1 className="text-xl font-bold italic tracking-tighter">VIBE <span className="text-blue-500">CONSOLE</span></h1>
+          </div>
           <button onClick={() => setAuthorized(false)} className="text-[10px] opacity-40 uppercase hover:opacity-100 transition">Déconnexion</button>
         </div>
 
