@@ -336,10 +336,22 @@ export default function Home() {
               <div className="flex justify-between items-center mb-6">
                 <p className="text-[10px] uppercase tracking-widest text-white/40">Connecté en tant que: <span className="text-white">{user.email}</span></p>
                 <div className="flex gap-2">
-                  <input type="text" placeholder="CODE ADMIN" className="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-[9px] tracking-widest outline-none uppercase w-32" value={searchCode} onChange={(e) => setSearchCode(e.target.value)} />
+                  <input type="text" placeholder="CODE SUIVI OU ADMIN" className="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-[9px] tracking-widest outline-none uppercase w-40" value={searchCode} onChange={(e) => setSearchCode(e.target.value)} />
                   <button onClick={handleSearch} className="px-4 py-2 bg-zinc-800 rounded-lg text-[9px] font-bold uppercase hover:bg-zinc-700">Go</button>
                 </div>
               </div>
+
+              {searchResult && (
+                <div className="p-6 border border-blue-500/30 bg-blue-500/10 rounded-2xl mb-6 text-center flex flex-col items-center">
+                  <p className="text-[9px] uppercase tracking-widest text-blue-400 mb-2 font-bold">Résultat de la recherche</p>
+                  <p className="font-black text-white uppercase text-sm mb-4">{searchResult.voitures?.marque} {searchResult.voitures?.modele}</p>
+                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${searchResult.statut === 'accepte' || searchResult.statut === 'confirme' ? 'bg-green-500/20 text-green-500' :
+                      searchResult.statut === 'refuse' ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/20 text-blue-500'
+                    }`}>
+                    {searchResult.statut === 'en_attente' ? 'En cours d\'analyse' : searchResult.statut}
+                  </span>
+                </div>
+              )}
 
               {myReservations.length === 0 ? (
                 <div className="text-center py-10 border border-white/5 bg-black/20 rounded-2xl">
