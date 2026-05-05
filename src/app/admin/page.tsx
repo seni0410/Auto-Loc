@@ -162,6 +162,20 @@ export default function AdminDashboard() {
     }
   };
 
+  const toggleAvailability = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('voitures')
+        .update({ disponible: !currentStatus })
+        .eq('id', id);
+      if (error) throw error;
+      fetchData();
+      showToast(`Statut changé : ${!currentStatus ? 'Disponible' : 'Louée'}`);
+    } catch (err: any) {
+      showToast(err.message, "error");
+    }
+  };
+
   const filteredReservations = reservations.filter(r => {
     if (filter === 'toutes') return true;
     if (filter === 'en_attente') return !r.statut || r.statut === 'en_attente';
@@ -200,7 +214,7 @@ export default function AdminDashboard() {
       <div className="max-w-6xl mx-auto space-y-12">
         <div className="flex justify-between items-center border-b border-white/10 pb-8">
           <div className="flex items-center gap-4">
-            <img src="/logo.png" alt="Auto-Loc Logo" className="h-10 w-auto opacity-80" />
+            <img src="/logo.png" alt="Auto-Loc Logo" className="h-16 w-auto opacity-80" />
             <h1 className="text-xl font-bold italic tracking-tighter">VIBE <span className="text-blue-500">CONSOLE</span></h1>
           </div>
           <button onClick={() => setAuthorized(false)} className="text-[10px] opacity-40 uppercase hover:opacity-100 transition">Déconnexion</button>
@@ -279,9 +293,9 @@ export default function AdminDashboard() {
                 </div>
                 <div className="p-6">
                   <p className="font-black uppercase text-lg mb-4">{v.marque} <span className="text-blue-500">{v.modele}</span></p>
-                  <p className={`text-[9px] uppercase font-bold mb-4 ${v.disponible ? 'text-green-500' : 'text-red-500'}`}>
-                    {v.disponible ? "● Disponible" : "○ Louée"}
-                  </p>
+                  <button onClick={() => toggleAvailability(v.id, v.disponible)} className={`w-full text-left text-[9px] uppercase font-bold mb-4 hover:opacity-70 transition-opacity ${v.disponible ? 'text-green-500' : 'text-red-500'}`}>
+                    {v.disponible ? "● Disponible (cliquer pour changer)" : "○ Louée (cliquer pour rendre disponible)"}
+                  </button>
                   <button onClick={() => deleteCar(v.id)} className="w-full text-[9px] font-black uppercase text-red-500 border border-red-500/10 py-3.5 rounded-2xl hover:bg-red-500 hover:text-white transition-all">Retirer</button>
                 </div>
               </div>
