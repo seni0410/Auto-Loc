@@ -95,16 +95,9 @@ export default function Home() {
     e.preventDefault();
     setAuthLoading(true);
     try {
-      if (authMode === 'register') {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        alert("Inscription réussie ! Vous êtes maintenant connecté.");
-        setAuthModal(false);
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        setAuthModal(false);
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      setAuthModal(false);
     } catch (err: any) {
       alert("Erreur: " + err.message);
     } finally {
@@ -211,11 +204,7 @@ export default function Home() {
           <a href="#collection" className="hover:text-blue-400 transition-colors">Collection</a>
           <a href="#vision" className="hover:text-blue-400 transition-colors">Vision</a>
           <a href="#suivi" className="hover:text-blue-400 transition-colors">Tableau de bord</a>
-          {user ? (
-            <button onClick={handleLogout} className="text-red-400 hover:text-red-300 transition-colors border border-red-500/20 px-4 py-2 rounded-full">Déconnexion</button>
-          ) : (
-            <button onClick={() => setAuthModal(true)} className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-white hover:text-black transition-colors">Espace Client</button>
-          )}
+          <a href="/admin" className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-white hover:text-black transition-colors">Espace Admin</a>
         </div>
       </nav>
 
@@ -265,10 +254,6 @@ export default function Home() {
               className={`flex flex-col ${voiture.disponible ? 'group cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
               onClick={() => {
                 if (!voiture.disponible) return;
-                if (!user) {
-                  setAuthModal(true);
-                  return;
-                }
                 setSelectedVoiture(voiture);
                 setIsModalOpen(true);
                 setOrderCode(null);
@@ -326,15 +311,11 @@ export default function Home() {
             <p className="text-2xl font-light italic">Votre historique et suivi</p>
           </div>
 
-          {!user ? (
-            <div className="text-center py-10">
-              <p className="text-white/40 text-sm mb-6 uppercase tracking-widest">Connectez-vous pour voir vos réservations</p>
-              <button onClick={() => setAuthModal(true)} className="px-10 py-5 bg-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">S'authentifier</button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center mb-6">
-                <p className="text-[10px] uppercase tracking-widest text-white/40">Connecté en tant que: <span className="text-white">{user.email}</span></p>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center mb-6">
+              <p className="text-[10px] uppercase tracking-widest text-white/40">
+                {user ? `Connecté en tant que: ${user.email}` : "Accès Visiteur"}
+              </p>
                 <div className="flex gap-2">
                   <input type="text" placeholder="CODE SUIVI OU ADMIN" className="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-[9px] tracking-widest outline-none uppercase w-40" value={searchCode} onChange={(e) => setSearchCode(e.target.value)} />
                   <button onClick={handleSearch} className="px-4 py-2 bg-zinc-800 rounded-lg text-[9px] font-bold uppercase hover:bg-zinc-700">Go</button>
@@ -372,8 +353,7 @@ export default function Home() {
                   </div>
                 ))
               )}
-            </div>
-          )}
+          </div>
         </div>
       </section>
 
@@ -382,35 +362,7 @@ export default function Home() {
         <p className="text-[8px] opacity-20 tracking-[0.6em] uppercase">Algeria Premium Mobility © 2026</p>
       </footer>
 
-      <AnimatePresence>
-        {authModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-6">
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-[#050505] border border-white/10 p-10 md:p-12 rounded-3xl max-w-md w-full relative">
-              <button onClick={() => setAuthModal(false)} className="absolute top-8 right-8 text-xs opacity-30 hover:opacity-100">FERMER ×</button>
-              <h3 className="text-3xl font-light italic mb-2">{authMode === 'login' ? 'Connexion' : 'Inscription'}</h3>
-              <p className="text-[10px] uppercase tracking-widest text-white/40 mb-8">{authMode === 'login' ? 'Accédez à votre espace' : 'Créez votre compte client'}</p>
-
-              <form onSubmit={handleAuth} className="space-y-6">
-                <div>
-                  <label className="text-[9px] uppercase tracking-widest text-white/40 mb-2 block">Email</label>
-                  <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-xs outline-none focus:border-blue-500 text-white" />
-                </div>
-                <div>
-                  <label className="text-[9px] uppercase tracking-widest text-white/40 mb-2 block">Mot de passe</label>
-                  <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-xs outline-none focus:border-blue-500 text-white" />
-                </div>
-                <button type="submit" disabled={authLoading} className="w-full py-4 bg-blue-600 text-white text-[10px] uppercase tracking-[0.5em] font-black rounded-xl hover:bg-white hover:text-black transition-all">
-                  {authLoading ? 'CHARGEMENT...' : (authMode === 'login' ? 'SE CONNECTER' : "S'INSCRIRE")}
-                </button>
-              </form>
-
-              <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="w-full text-center mt-6 text-[9px] uppercase tracking-widest text-white/30 hover:text-white transition-colors">
-                {authMode === 'login' ? "Pas de compte ? S'inscrire" : "Déjà un compte ? Se connecter"}
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Modal Admin Supprimée - Redirection Directe */}
 
       <AnimatePresence>
         {isModalOpen && (

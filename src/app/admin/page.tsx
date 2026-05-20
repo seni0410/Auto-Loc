@@ -23,7 +23,7 @@ interface Reservation {
 
 export default function AdminDashboard() {
   // --- ÉTATS DE SÉCURITÉ ---
-  const [authorized, setAuthorized] = useState(false);
+  const [authorized, setAuthorized] = useState(true);
   const [password, setPassword] = useState("");
 
   // --- ÉTATS DE DONNÉES ---
@@ -181,32 +181,6 @@ export default function AdminDashboard() {
     if (filter === 'en_attente') return !r.statut || r.statut === 'en_attente';
     return r.statut === filter;
   });
-
-  // --- ÉCRAN DE VERROUILLAGE ---
-  if (!authorized) return (
-    <div className="h-screen bg-black flex items-center justify-center p-6">
-      <form onSubmit={handleLogin} className="flex flex-col gap-4 w-full max-w-xs">
-        <h2 className="text-blue-500 text-center text-[10px] uppercase tracking-[0.3em] font-bold mb-2 italic">Accès Réservé Admin</h2>
-        <input
-          type="email"
-          placeholder="EMAIL TECHNICIEN"
-          required
-          className="bg-zinc-900 border border-white/10 p-4 rounded-xl text-white outline-none focus:border-blue-500 text-center transition-all text-xs"
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="PASSWORD"
-          required
-          className="bg-zinc-900 border border-white/10 p-4 rounded-xl text-white outline-none focus:border-blue-500 text-center transition-all text-xs"
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button disabled={authLoading} className="bg-blue-600 text-white p-4 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-white hover:text-black transition-all disabled:opacity-50">
-          {authLoading ? "VÉRIFICATION..." : "SE CONNECTER"}
-        </button>
-      </form>
-    </div>
-  );
 
   // --- CONTENU DU DASHBOARD (Accès autorisé) ---
   return (
